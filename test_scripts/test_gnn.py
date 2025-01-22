@@ -5,7 +5,7 @@ sys.path.append(root_folder)
 from ml4tsp import *
 
 # solving settings
-SOLVING_SETTINGS = "greedy_mcts"
+SOLVING_SETTINGS = "greedy_2opt"
 SETTINGS_DICT = {
     "insertion": (ML4TSPNARInsertionDecoder(samples_num=1), None),
     "greedy": (ML4TSPNARGreeyDecoder(), None),
@@ -28,31 +28,30 @@ SETTINGS_DICT = {
 }
 
 # test file and pretrained file
-TEST_SCALE = "TSP-50"
+NODES_NUM = 50
+SPARSE_FACTOR = -1
 TEST_FILE_DICT = {
-    "TSP-50": "test_dataset/tsp50_concorde_5.688.txt",
-    "TSP-100": "test_dataset/tsp100_concorde_7.756.txt",
-    "TSP-500": "test_dataset/tsp500_concorde_16.546.txt",
-    "TSP-1K": "test_dataset/tsp1000_concorde_23.118.txt"
+    50: "test_dataset/tsp50_concorde_5.688.txt",
+    100: "test_dataset/tsp100_concorde_7.756.txt",
+    500: "test_dataset/tsp500_concorde_16.546.txt"
 }
 WEIGHT_PATH_DICT = {
-    "TSP-50": "weights/tsp50_gnn.pt",
-    "TSP-100": "weights/tsp100_gnn.pt",
-    "TSP-500": "weights/tsp500_gnn.pt",
-    "TSP-1K": "weights/tsp1k_gnn.pt"
+    50: "weights/tsp50_gnn.pt",
+    100: "weights/tsp100_gnn.pt",
+    500: "weights/tsp500_gnn.pt"
 }
 
 # main
 if __name__ == "__main__":
     solver = ML4TSPNARSolver(
         model=ML4TSPGNN(
-            env=ML4TSPNAREnv(nodes_num=50, device="cuda"),
-            encoder=GNNEncoder(),
+            env=ML4TSPNAREnv(nodes_num=NODES_NUM, sparse_factor=SPARSE_FACTOR, device="cuda"),
+            encoder=GNNEncoder(sparse=SPARSE_FACTOR>0),
             decoder=SETTINGS_DICT[SOLVING_SETTINGS][0],
             local_search=SETTINGS_DICT[SOLVING_SETTINGS][1],
-            pretrained_path=WEIGHT_PATH_DICT[TEST_SCALE]
+            pretrained_path=WEIGHT_PATH_DICT[NODES_NUM]
         )
     )
-    solver.from_txt(TEST_FILE_DICT[TEST_SCALE], ref=True)
+    solver.from_txt(TEST_FILE_DICT[NODES_NUM], ref=True)
     solver.solve(batch_size=1, show_time=True)
     print(solver.evaluate(calculate_gap=True))
