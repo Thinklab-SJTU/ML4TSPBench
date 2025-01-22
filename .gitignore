@@ -1,0 +1,39 @@
+# pycache
+*.DS_Store
+*__pycache__
+**/__pycache__/*
+__pycache__/
+**/__pycache__/**
+
+# .zip or .gz
+*.zip
+*.gz
+
+# C extensions
+*.pyd
+*.so
+*.o
+
+# datasets
+dataset/**
+data/**
+test_dataset/**
+
+# tmp
+tmp/**
+tmp.py
+repos/**
+*.out
+
+# coverage
+coverage.xml
+.coverage
+
+# train
+log/**
+train_ckpts/**
+weights/**
+wandb/**
+
+# history
+his/**
