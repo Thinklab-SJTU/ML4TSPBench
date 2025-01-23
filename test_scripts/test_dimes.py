@@ -29,26 +29,23 @@ SETTINGS_DICT = {
 
 # test file and pretrained file
 NODES_NUM = 50
-SPARSE_FACTOR = -1
 TEST_FILE_DICT = {
     50: "test_dataset/tsp50_concorde_5.688.txt",
     100: "test_dataset/tsp100_concorde_7.756.txt",
-    500: "test_dataset/tsp500_concorde_16.546.txt",
-    1000: "test_dataset/tsp1000_concorde_23.118.txt"
+    500: "test_dataset/tsp500_concorde_16.546.txt"
 }
 WEIGHT_PATH_DICT = {
-    50: "weights/tsp50_gnn_wise.pt",
-    100: "weights/tsp100_gnn_wise.pt",
-    500: "weights/tsp500_gnn_wise.pt",
-    1000: "weights/tsp1k_gnn_wise.pt"
+    50: "weights/tsp50_dimes.pt",
+    100: "weights/tsp100_dimes.pt",
+    500: "weights/tsp500_dimes.pt"
 }
 
 # main
 if __name__ == "__main__":
     solver = ML4TSPNARSolver(
-        model=ML4TSPGNNWISE(
-            env=ML4TSPNAREnv(nodes_num=NODES_NUM, sparse_factor=SPARSE_FACTOR, device="cuda"),
-            encoder=GNNEncoder(sparse=SPARSE_FACTOR>0),
+        model=ML4TSPDIMES(
+            env=ML4TSPNAREnv(nodes_num=NODES_NUM, sparse_factor=-1, device="cuda"),
+            encoder=GNNEncoder(output_channels=1, sparse=False),
             decoder=SETTINGS_DICT[SOLVING_SETTINGS][0],
             local_search=SETTINGS_DICT[SOLVING_SETTINGS][1],
             pretrained_path=WEIGHT_PATH_DICT[NODES_NUM]

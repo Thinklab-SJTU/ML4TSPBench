@@ -4,8 +4,9 @@ root_folder = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(root_folder)
 from ml4tsp import *
 
+
 # solving settings
-SOLVING_SETTINGS = "greedy_2opt"
+SOLVING_SETTINGS = "greedy_mcts"
 SETTINGS_DICT = {
     "insertion": (ML4TSPNARInsertionDecoder(samples_num=1), None),
     "greedy": (ML4TSPNARGreeyDecoder(), None),
