@@ -156,7 +156,7 @@ class ML4TSPNARDecoder:
             return tours, self.heatmap, per_tours_num
         else:
             tmp_tsp_solver = TSPSolver()
-            tmp_tsp_solver.from_data(points=points, tours=tours)
+            tmp_tsp_solver.from_data(points=points, tours=tours[0])
             return tmp_tsp_solver.evaluate()
         
     def _decode(self, heatmap: np.ndarray, points: np.ndarray) -> np.ndarray:

@@ -34,7 +34,7 @@ class ML4TSPNARBaseModel(BaseModel):
         
         # decoder
         if isinstance(decoder, str):
-            decoder = get_nar_decoder_by_name(decoder)
+            decoder = get_nar_decoder_by_name(decoder)()
         self.decoder = decoder
         self.decoder.device = self.env.device
         self.decoder.sparse = self.env.sparse
@@ -66,19 +66,23 @@ class ML4TSPNARBaseModel(BaseModel):
         self.env.mode = phase
         
         # read data from batch
-        points, ref_tours = batch
+        if self.env.regret_path is None:
+            points, ref_tours = batch
+            ref_regret = None
+        else:
+            points, ref_tours, ref_regret = batch
         points: Tensor # (B, N, 2)
         ref_tours: Tensor # (B, N+1)
 
         # process data
-        ground_truth, edge_index = self.env.process_data(points, ref_tours)
+        points, edge_index, distmat, ground_truth = self.env.process_data(points, ref_tours, ref_regret)
         distmat = points_to_distmat(points, edge_index)
         
         # deal with different phase (mode)
         if phase == "train":
             loss = self.train_process(
                 points=points, edge_index=edge_index, 
-                distmat=distmat, ground_truth=ground_truth
+                distmat=distmat, ground_truth=ground_truth, 
             )
         elif phase == "val":
             loss, heatmap = self.inference_process(

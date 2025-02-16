@@ -1,6 +1,7 @@
 from .base import ML4TSPNARLocalSearch
 from .mcts import ML4TSPNARMCTS
 from .two_opt import ML4TSPNARTwoOpt
+from .guided_ls import ML4TSPNARGuidedLS
 
 
 def get_local_search_by_name(name: str):

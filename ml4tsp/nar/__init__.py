@@ -6,7 +6,7 @@ from .decoder import (
     ML4TSPNARSamplingDecoder
 )
 from .model import (
-    ML4TSPNARBaseModel, ML4TSPGNN, ML4TSPGNNWISE, ML4TSPDIMES
+    ML4TSPNARBaseModel, ML4TSPGNN, ML4TSPGNNWISE, ML4TSPDIMES, ML4TSPGNNREG
 )
-from .local_search import ML4TSPNARLocalSearch, ML4TSPNARMCTS, ML4TSPNARTwoOpt
+from .local_search import ML4TSPNARLocalSearch, ML4TSPNARMCTS, ML4TSPNARTwoOpt, ML4TSPNARGuidedLS
 from .solver import ML4TSPNARSolver

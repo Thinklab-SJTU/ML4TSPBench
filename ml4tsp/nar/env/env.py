@@ -41,13 +41,11 @@ class ML4TSPNAREnv(BaseEnv):
         # regret
         self.reg_scaler = None
         self.regret_path = regret_path
-        if self.regret_path is not None and self.mode in ["train", "val"]:
-            self.regret = True
-            pkl_path = os.path.join(self.regret_path, f'tsp{self.nodes_num}_regret_scaler.pkl')
+        self.regret_mask = None
+        if self.regret_path is not None:
+            pkl_path = f"ml4tsp/nar/env/gnn_reg_scaler/tsp{self.nodes_num}_regret_scaler.pkl"
             self.reg_scaler = pickle.load(open(pkl_path, 'rb'))
             self.regret_mask = torch.triu(torch.ones(self.nodes_num, self.nodes_num), diagonal=1).bool()
-        else:
-            self.regret = False
         
         # load data
         self.load_data()
@@ -55,10 +53,18 @@ class ML4TSPNAREnv(BaseEnv):
     def load_data(self):
         if self.mode == "train":
             self.train_dataset = ML4TSPGraphDataset(
-                files_path=self.train_path,
+                file_path=self.train_path,
+                reg_path=self.regret_path,
+                reg_scaler=self.reg_scaler,
+                reg_mask=self.regret_mask,
+                mode=self.mode
             )
             self.val_dataset = ML4TSPGraphDataset(
-                files_path=self.val_path,
+                file_path=self.val_path,
+                reg_path=self.regret_path,
+                reg_scaler=self.reg_scaler,
+                reg_mask=self.regret_mask,
+                mode=self.mode
             )
             
     def train_dataloader(self):
@@ -173,27 +179,31 @@ class ML4TSPNAREnv(BaseEnv):
         ground_truth = to_tensor(ground_truth)
         return ground_truth
 
-    def dense_process_data(self, points: Tensor, ref_tours: Tensor) -> Sequence[Tensor]:
+    def dense_process_data(self, points: Tensor, ref_tours: Tensor, ref_regret: Tensor) -> Sequence[Tensor]:
         # check dim
         check_dim(points, 3)
         check_dim(ref_tours, 2)
+        check_dim(ref_regret, 3)
         
         # process data
-        ground_truth_list = list() 
-        for idx in range(points.shape[0]):
-            ground_truth = self._dense_process_data(points[idx], ref_tours[idx])
-            ground_truth_list.append(ground_truth)
-        
-        # torch.cat
-        ground_truth = torch.cat(ground_truth_list, dim=0).to(self.device)
-        ground_truth = ground_truth.reshape(-1, self.nodes_num, self.nodes_num)
+        if ref_regret is not None:
+            ground_truth = ref_regret
+        else:
+            ground_truth_list = list() 
+            for idx in range(points.shape[0]):
+                ground_truth = self._dense_process_data(points[idx], ref_tours[idx])
+                ground_truth_list.append(ground_truth)
+            
+            # torch.cat
+            ground_truth = torch.cat(ground_truth_list, dim=0).to(self.device)
+            ground_truth = ground_truth.reshape(-1, self.nodes_num, self.nodes_num)
         distmat = points_to_distmat(points, None)
 
         # return
         return points, None, distmat, ground_truth
     
-    def process_data(self, points: torch.Tensor, ref_tours: torch.Tensor) -> Sequence[Tensor]:
+    def process_data(self, points: Tensor, ref_tours: Tensor, ref_regret: Tensor=None) -> Sequence[Tensor]:
         if self.sparse:
             return self.sparse_process_data(points, ref_tours)
         else:
-            return self.dense_process_data(points, ref_tours)
+            return self.dense_process_data(points, ref_tours, ref_regret)
