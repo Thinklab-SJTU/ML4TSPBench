@@ -40,6 +40,7 @@ class ML4TSPGNN(ML4TSPNARBaseModel):
     def inference_process(
         self, points: Tensor, edge_index: Tensor, distmat: Tensor, ground_truth: Tensor
     ) -> Union[Tensor, Tuple[Tensor, Tensor]]:
+        
         if self.env.sparse:
             batch_size = points.shape[0]
             points = points.reshape(-1, 2)
@@ -55,7 +56,8 @@ class ML4TSPGNN(ML4TSPNARBaseModel):
         if not self.env.sparse:
             heatmap = x0_pred[: , 1, :, :]
         else:
-            heatmap = x0_pred[: , 1].reshape(batch_size, -1)
+            x0_pred = x0_pred.T.reshape(batch_size, 2, -1)
+            heatmap = x0_pred[: , 1, :]
             
         if self.env.mode == "solve":
             return heatmap
@@ -71,11 +73,21 @@ class ML4TSPGNN(ML4TSPNARBaseModel):
     def train_process(
         self, points: Tensor, edge_index: Tensor, distmat: Tensor, ground_truth: Tensor
     ) -> Tensor:
+        
+        if self.env.sparse:
+            batch_size = points.shape[0]
+            points = points.reshape(-1, 2)
+            distmat = distmat.reshape(-1)
+            edge_index = edge_index.transpose(1, 0).reshape(2, -1)
+            
         # x0_pred
         x0_pred = self.forward(
-            x=points, graph=distmat, edge_index=edge_index, t=None
+            x=points, graph=distmat, edge_index=edge_index, timesteps=None
         )
         x0_pred = F.softmax(x0_pred, dim=1)
+        
+        if self.env.sparse:
+            x0_pred = x0_pred.T.reshape(batch_size, 2, -1)
         
         # loss
         edge_labels = ground_truth.flatten().cpu().numpy()
