@@ -90,7 +90,8 @@ class ML4TSPNARBaseModel(BaseModel):
                 distmat=distmat, ground_truth=ground_truth
             )
             costs_avg = self.decoder.decode(
-                heatmap=heatmap, points=points, return_costs=True
+                heatmap=heatmap, points=points, edge_index=edge_index,
+                return_costs=True
             )
         else:
             raise NotImplementedError()
