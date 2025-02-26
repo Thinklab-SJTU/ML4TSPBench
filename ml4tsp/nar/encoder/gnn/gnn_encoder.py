@@ -4,8 +4,8 @@ import torch
 import torch.utils.checkpoint as activation_checkpoint
 from torch import nn
 from torch_sparse import SparseTensor
-from ml4tsp.nar.encoder.gnn.gnn_layer import GNNLayer
-from ml4tsp.nar.encoder.gnn.gnn_embedders import (
+from .gnn_layer import GNNLayer
+from .gnn_embedders import (
     ScalarEmbeddingSine1D, ScalarEmbeddingSine3D, PositionEmbeddingSine
 )
 

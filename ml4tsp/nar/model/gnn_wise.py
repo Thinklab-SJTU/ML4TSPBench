@@ -4,11 +4,11 @@ import torch.nn.functional as F
 from torch import nn, Tensor
 from typing import Union, Tuple
 from sklearn.utils.class_weight import compute_class_weight
-from ml4tsp.nar.env import ML4TSPNAREnv
-from ml4tsp.nar.decoder import ML4TSPNARDecoder
-from ml4tsp.nar.model.base import ML4TSPNARBaseModel
-from ml4tsp.nar.local_search import ML4TSPNARLocalSearch
-from ml4tsp.nar.encoder.gnn.gnn_encoder import GNNEncoder
+from ..env import ML4TSPNAREnv
+from ..decoder import ML4TSPNARDecoder
+from ..model.base import ML4TSPNARBaseModel
+from ..local_search import ML4TSPNARLocalSearch
+from ..encoder.gnn.gnn_encoder import GNNEncoder
 
 
 class ML4TSPGNNWISE(ML4TSPNARBaseModel):

@@ -3,11 +3,11 @@ import numpy as np
 import torch.nn.functional as F
 from torch import nn, Tensor
 from typing import Union, Tuple
-from ml4tsp.nar.env import ML4TSPNAREnv
-from ml4tsp.nar.decoder import ML4TSPNARDecoder
-from ml4tsp.nar.model.base import ML4TSPNARBaseModel
-from ml4tsp.nar.local_search import ML4TSPNARLocalSearch
-from ml4tsp.nar.encoder.gnn.gnn_encoder import GNNEncoder
+from ..env import ML4TSPNAREnv
+from ..decoder import ML4TSPNARDecoder
+from ..model.base import ML4TSPNARBaseModel
+from ..local_search import ML4TSPNARLocalSearch
+from ..encoder.gnn.gnn_encoder import GNNEncoder
 import math
 
 
@@ -51,13 +51,17 @@ class ML4TSPDiffusion(ML4TSPNARBaseModel):
         self, points: Tensor, edge_index: Tensor, distmat: Tensor, ground_truth: Tensor
     ) -> Union[Tensor, Tuple[Tensor, Tensor]]:
         
+        batch_size = points.shape[0]
         if self.env.sparse:
-            batch_size = points.shape[0]
             points = points.reshape(-1, 2)
             distmat = distmat.reshape(-1)
             edge_index = edge_index.transpose(1, 0).reshape(2, -1)
+            x_shape = (batch_size, edge_index.shape[1] // batch_size)
+        else:
+            x_shape = (batch_size, points.shape[1], points.shape[1])
         
-        xt = torch.randn_like(ground_truth.float())
+        xt = torch.randn(x_shape).to(points.device)
+        
         xt = (xt > 0).long()
         if self.env.sparse:
             xt = xt.reshape(-1)
@@ -72,10 +76,10 @@ class ML4TSPDiffusion(ML4TSPNARBaseModel):
             t1, t2 = time_schedule(i)
             t1 = np.array([t1]).astype(int)
             t2 = np.array([t2]).astype(int)
-
+        
             # [B, N, N], heatmap score
             xt, x0_pred = self.categorical_denoise_step(
-                points, xt, t1, ground_truth.device, edge_index, target_t=t2)
+                points, xt, t1, points.device, edge_index, target_t=t2)
         
         heatmap = xt.float().cpu().detach().numpy() + 1e-6
         
@@ -83,7 +87,7 @@ class ML4TSPDiffusion(ML4TSPNARBaseModel):
             x0_pred = x0_pred.T.reshape(batch_size, 2, -1)
             
         if self.env.mode == "solve":
-            return heatmap
+            return heatmap.reshape(batch_size, -1)
     
         # Compute loss
         loss_func = nn.CrossEntropyLoss()
@@ -94,8 +98,8 @@ class ML4TSPDiffusion(ML4TSPNARBaseModel):
         self, points: Tensor, edge_index: Tensor, distmat: Tensor, ground_truth: Tensor
     ) -> Tensor:
         
+        batch_size = points.shape[0]
         if self.env.sparse:
-            batch_size = points.shape[0]
             points = points.reshape(-1, 2)
             distmat = distmat.reshape(-1)
             edge_index = edge_index.transpose(1, 0).reshape(2, -1)
@@ -105,7 +109,7 @@ class ML4TSPDiffusion(ML4TSPNARBaseModel):
         if self.env.sparse:
             adj_matrix_onehot = adj_matrix_onehot.unsqueeze(1)
             
-        np_t = np.random.randint(1, self.diffusion.T + 1, points.shape[0]).astype(int)
+        np_t = np.random.randint(1, self.diffusion.T + 1, batch_size).astype(int)
         if self.env.sparse:
             t = torch.from_numpy(np_t).float().reshape(-1, 1).repeat(1, ground_truth.shape[1]).reshape(-1)
         else:
@@ -114,6 +118,9 @@ class ML4TSPDiffusion(ML4TSPNARBaseModel):
         xt = self.diffusion.sample(adj_matrix_onehot, np_t)
         xt = xt * 2 - 1
         xt = xt * (1.0 + 0.05 * torch.rand_like(xt))
+        
+        if self.env.sparse:
+            xt = xt.reshape(-1)
 
         # x0_pred
         x0_pred = self.forward(
@@ -177,7 +184,7 @@ class ML4TSPDiffusion(ML4TSPNARBaseModel):
 
         xt = F.one_hot(xt.long(), num_classes=2).float()
         xt = xt.reshape(x0_pred_prob.shape)
-
+        
         x_t_target_prob_part_1 = torch.matmul(xt, Q_t.permute((1, 0)).contiguous())
         x_t_target_prob_part_2 = Q_bar_t_target[0]
         x_t_target_prob_part_3 = (Q_bar_t_source[0] * xt).sum(dim=-1, keepdim=True)
@@ -201,6 +208,53 @@ class ML4TSPDiffusion(ML4TSPNARBaseModel):
             xt = xt.reshape(-1)
         return xt
   
+    @torch.enable_grad() 
+    @torch.inference_mode(False)
+    def guided_categorical_denoise_step(self, points, xt, t, device, edge_index=None, target_t=None):            
+        xt = xt.float()  # b, n, n
+        xt.requires_grad = True
+        t = torch.from_numpy(t).view(1)
+        if edge_index is not None: edge_index = edge_index.clone()
+
+        # [b, 2, n, n]
+        # with torch.inference_mode(False):
+        ###############################################
+        # scale to [-1, 1]
+        xt_scale = (xt * 2 - 1)
+        xt_scale = xt_scale * (1.0 + 0.05 * torch.rand_like(xt_scale))
+        # xt_scale = xt
+        ###############################################
+        
+        x0_pred = self.forward(
+            x=points.float().to(device),
+            graph=xt_scale.to(device),
+            timesteps=t.float().to(device),
+            edge_index=edge_index.long().to(device) if edge_index is not None else None,
+        )
+
+        if not self.env.sparse:
+            x0_pred_prob = x0_pred.permute((0, 2, 3, 1)).contiguous().softmax(dim=-1)
+        else:
+            x0_pred_prob = x0_pred.reshape((1, points.shape[0], -1, 2)).softmax(dim=-1)
+
+        if not self.env.sparse:
+            dis_matrix = self.points2adj(points)
+            cost_est = (dis_matrix * x0_pred_prob[..., 1]).sum()
+            cost_est.requires_grad_(True)
+            cost_est.backward()
+        else:
+            dis_matrix = torch.sqrt(torch.sum((points[edge_index.T[:, 0]] - points[edge_index.T[:, 1]]) ** 2, dim=1))
+            dis_matrix = dis_matrix.reshape((1, points.shape[0], -1))
+            cost_est = (dis_matrix * x0_pred_prob[..., 1]).sum()
+            cost_est.requires_grad_(True)
+            cost_est.backward()
+        assert xt.grad is not None
+
+        xt.grad = nn.functional.normalize(xt.grad, p=2, dim=-1)
+        xt = self.guided_categorical_posterior(target_t, t, x0_pred_prob, xt)
+
+        return xt.detach()
+    
     def guided_categorical_posterior(self, target_t, t, x0_pred_prob, xt, grad=None):
         # xt: b, n, n
         if grad is None:
@@ -261,6 +315,16 @@ class ML4TSPDiffusion(ML4TSPNARBaseModel):
         if self.env.sparse:
             xt = xt.reshape(-1)
         return xt
+    
+    def points2adj(self, points):
+        """
+        return distance matrix
+        Args:
+        points: b, n, 2
+        Returns: b, n, n
+        """
+        assert points.dim() == 3
+        return torch.sum((points.unsqueeze(2) - points.unsqueeze(1)) ** 2, dim=-1) ** 0.5
     
     
 class CategoricalDiffusion(object):
@@ -327,4 +391,3 @@ class InferenceSchedule(object):
       return t1, t2
     else:
       raise ValueError("Unknown inference schedule: {}".format(self.inference_schedule))
-

@@ -3,7 +3,7 @@ import torch
 import numpy as np
 from typing import Union
 from ml4co_kit import to_tensor, to_numpy
-from ml4tsp.nar.local_search.base import ML4TSPNARLocalSearch
+from .base import ML4TSPNARLocalSearch
 
 
 class ML4TSPNARTwoOpt(ML4TSPNARLocalSearch):

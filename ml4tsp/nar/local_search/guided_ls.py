@@ -5,7 +5,7 @@ import scipy
 import itertools
 from typing import Union
 from ml4co_kit import to_tensor, to_numpy
-from ml4tsp.nar.local_search.base import ML4TSPNARLocalSearch
+from .base import ML4TSPNARLocalSearch
 
 class ML4TSPNARGuidedLS(ML4TSPNARLocalSearch):
     """

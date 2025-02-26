@@ -1,5 +1,5 @@
 import numpy as np
-from ml4tsp.nar.decoder.base import ML4TSPNARDecoder
+from .base import ML4TSPNARDecoder
 
 
 class ML4TSPNARSamplingDecoder(ML4TSPNARDecoder):

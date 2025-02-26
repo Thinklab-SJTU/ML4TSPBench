@@ -4,7 +4,7 @@ import scipy.special as ssp
 from typing import Union
 from scipy.spatial.distance import cdist
 from ml4co_kit import tsp_mcts_local_search
-from ml4tsp.nar.local_search.base import ML4TSPNARLocalSearch
+from .base import ML4TSPNARLocalSearch
 
 
 MCTS_TIME_LIMIT_DEFAULT = {

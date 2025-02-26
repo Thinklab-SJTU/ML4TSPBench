@@ -1,6 +1,6 @@
 import numpy as np
 from ml4co_kit import tsp_insertion_decoder
-from ml4tsp.nar.decoder.base import ML4TSPNARDecoder
+from .base import ML4TSPNARDecoder
 
 
 class ML4TSPNARInsertionDecoder(ML4TSPNARDecoder):

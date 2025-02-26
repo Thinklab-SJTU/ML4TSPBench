@@ -2,9 +2,9 @@ import torch
 from torch import nn, Tensor
 from typing import Any, Union
 from ml4co_kit import BaseModel, points_to_distmat
-from ml4tsp.nar.env.env import ML4TSPNAREnv
-from ml4tsp.nar.decoder import ML4TSPNARDecoder, get_nar_decoder_by_name
-from ml4tsp.nar.local_search import ML4TSPNARLocalSearch, get_local_search_by_name
+from ..env.env import ML4TSPNAREnv
+from ..decoder import ML4TSPNARDecoder, get_nar_decoder_by_name
+from ..local_search import ML4TSPNARLocalSearch, get_local_search_by_name
 
 
 class ML4TSPNARBaseModel(BaseModel):

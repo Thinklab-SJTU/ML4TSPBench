@@ -7,7 +7,7 @@ from typing import Sequence
 from sklearn.neighbors import KDTree
 from torch.utils.data import DataLoader
 from ml4co_kit import BaseEnv, to_numpy, to_tensor, check_dim, points_to_distmat
-from ml4tsp.nar.env.dataset import ML4TSPGraphDataset
+from .dataset import ML4TSPGraphDataset
 
 
 class ML4TSPNAREnv(BaseEnv):

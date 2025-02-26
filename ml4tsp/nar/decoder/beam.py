@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from ml4co_kit import to_numpy, to_tensor, TSPEvaluator
-from ml4tsp.nar.decoder.base import ML4TSPNARDecoder
+from .base import ML4TSPNARDecoder
 
 
 def tour_nodes_to_tour_len(nodes, W_values):

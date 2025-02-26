@@ -6,7 +6,7 @@ from ml4co_kit import (
     TSPSolver, SOLVER_TYPE, Timer, sparse_points, 
     points_to_distmat, to_tensor, iterative_execution
 )
-from ml4tsp.nar.model.base import ML4TSPNARBaseModel
+from ..model.base import ML4TSPNARBaseModel
 
 
 class ML4TSPNARSolver(TSPSolver):

@@ -2,7 +2,7 @@ import numpy as np
 from typing import Union
 from ml4co_kit import tsp_mcts_decoder
 from scipy.spatial.distance import cdist
-from ml4tsp.nar.decoder.base import ML4TSPNARDecoder
+from .base import ML4TSPNARDecoder
 
 
 MCTS_TIME_LIMIT_DEFAULT = {

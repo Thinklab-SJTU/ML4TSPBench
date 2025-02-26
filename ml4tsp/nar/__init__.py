@@ -9,4 +9,5 @@ from .model import (
     ML4TSPNARBaseModel, ML4TSPGNN, ML4TSPGNNWISE, ML4TSPDIMES, ML4TSPGNNREG, ML4TSPDiffusion
 )
 from .local_search import ML4TSPNARLocalSearch, ML4TSPNARMCTS, ML4TSPNARTwoOpt, ML4TSPNARGuidedLS
-from .solver import ML4TSPNARSolver
+from .solver.narsolver import ML4TSPNARSolver
+from .solver.t2tsolver import ML4TSPT2TSolver

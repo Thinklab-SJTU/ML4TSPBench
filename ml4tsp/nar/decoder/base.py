@@ -3,7 +3,7 @@ import numpy as np
 import scipy.sparse
 from typing import Union, Sequence
 from ml4co_kit import to_numpy, check_dim, TSPSolver
-from ml4tsp.nar.decoder.active_search import ML4TSPNARActiveSearch
+from .active_search import ML4TSPNARActiveSearch
 
 
 class ML4TSPNARDecoder:
@@ -156,7 +156,7 @@ class ML4TSPNARDecoder:
             return tours, self.heatmap, per_tours_num
         else:
             tmp_tsp_solver = TSPSolver()
-            tmp_tsp_solver.from_data(points=points, tours=tours[0])
+            tmp_tsp_solver.from_data(points=self.points, tours=tours[0])
             return tmp_tsp_solver.evaluate()
         
     def _decode(self, heatmap: np.ndarray, points: np.ndarray) -> np.ndarray:
