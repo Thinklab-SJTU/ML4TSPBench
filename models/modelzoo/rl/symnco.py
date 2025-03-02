@@ -9,8 +9,9 @@ import pygmtools as pygm
 
 
 tsp_symnco_path = {
-    50:  'https://huggingface.co/Bench4CO/SymNCO/resolve/main/TSP/tsp50_symnco.ckpt?download=true',
-    100:  'https://huggingface.co/Bench4CO/SymNCO/resolve/main/TSP/tsp100_symnco.ckpt?download=true',
+    50: 'https://huggingface.co/ML4TSPBench/SYMNCO/resolve/main/tsp50_symnco.pt?download=true',
+    100: 'https://huggingface.co/ML4TSPBench/SYMNCO/resolve/main/tsp100_symnco.pt?download=true',
+    500: 'https://huggingface.co/ML4TSPBench/SYMNCO/resolve/main/tsp500_symnco.pt?download=true'
 }
 
 
@@ -191,9 +192,9 @@ class TSPSymNCO(REINFORCE):
         if ckpt_path is None:
             if self.num_nodes in [50, 100]:
                 url = tsp_symnco_path[self.num_nodes]
-                filename=f"ckpts/tsp{self.num_nodes}_symnco.ckpt"
+                filename=f"ckpts/tsp{self.num_nodes}_symnco.pt"
                 pygm.utils.download(filename=filename, url=url, to_cache=None)
-                state_dict = torch.load(filename)['state_dict']
+                state_dict = torch.load(filename)
             else:
                 raise ValueError(f"There is currently no pretrained checkpoint with {self.num_nodes} nodes.")
         else:

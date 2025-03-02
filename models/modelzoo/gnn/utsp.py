@@ -20,8 +20,9 @@ import pygmtools as pygm
 
 
 utsp_path = {
-    50:  'https://huggingface.co/Bench4CO/Unsupervise/resolve/main/TSP/tsp50_us.ckpt?download=true',
-    100: 'https://huggingface.co/Bench4CO/Unsupervise/resolve/main/TSP/tsp100_us.ckpt?download=true',
+    50:  'https://huggingface.co/ML4TSPBench/US/resolve/main/tsp50_us.pt?download=true',
+    100: 'https://huggingface.co/ML4TSPBench/US/resolve/main/tsp100_us.pt?download=true',
+    500: 'https://huggingface.co/ML4TSPBench/US/resolve/main/tsp500_us.pt?download=true'
 }
 
 
@@ -317,9 +318,9 @@ class UTSPGNN(MetaGNN):
         if ckpt_path is None:
             if self.num_nodes in [50, 100]:
                 url = utsp_path[self.num_nodes]
-                filename=f"ckpts/tsp{self.num_nodes}_gnn.ckpt"
+                filename=f"ckpts/tsp{self.num_nodes}_us.pt"
                 pygm.utils.download(filename=filename, url=url, to_cache=None)
-                self.load_state_dict(torch.load(filename)['state_dict'])
+                self.load_state_dict(torch.load(filename))
             else:
                 raise ValueError(f"There is currently no pretrained checkpoint with {self.num_nodes} nodes.")
         else:

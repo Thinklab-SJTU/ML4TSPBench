@@ -16,9 +16,9 @@ import pygmtools as pygm
 
 
 tsp_dimes_path = {
-    50:  'https://huggingface.co/Bench4CO/Dimes/resolve/main/TSP/tsp50_dimes.ckpt?download=true',
-    100: 'https://huggingface.co/Bench4CO/Dimes/resolve/main/TSP/tsp100_dimes.ckpt?download=true',
-    500: 'https://huggingface.co/Bench4CO/Dimes/resolve/main/TSP/tsp500_dimes.ckpt?download=true',
+    50:  'https://huggingface.co/ML4TSPBench/DIMES/resolve/main/tsp50_dimes.pt?download=true',
+    100: 'https://huggingface.co/ML4TSPBench/DIMES/resolve/main/tsp100_dimes.pt?download=true',
+    500: 'https://huggingface.co/ML4TSPBench/DIMES/resolve/main/tsp500_dimes.pt?download=true',
 }
 
 
@@ -237,9 +237,9 @@ class TSPDIMES(MetaGNN):
         if ckpt_path is None:
             if self.num_nodes in [50, 100, 500]:
                 url = tsp_dimes_path[self.num_nodes]
-                filename=f"ckpts/tsp{self.num_nodes}_dimes.ckpt"
+                filename=f"ckpts/tsp{self.num_nodes}_dimes.pt"
                 pygm.utils.download(filename=filename, url=url, to_cache=None)
-                self.load_state_dict(torch.load(filename)['state_dict'])
+                self.load_state_dict(torch.load(filename))
             else:
                 raise ValueError(f"There is currently no pretrained checkpoint with {self.num_nodes} nodes.")
         else:

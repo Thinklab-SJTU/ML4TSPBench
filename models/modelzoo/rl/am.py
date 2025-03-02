@@ -7,8 +7,8 @@ import pygmtools as pygm
 
 
 tsp_am_path = {
-    50:  'https://huggingface.co/Bench4CO/AM/resolve/main/TSP/tsp50_am.ckpt?download=true',
-    100: 'https://huggingface.co/Bench4CO/AM/resolve/main/TSP/tsp100_am.ckpt?download=true',
+    50:  'https://huggingface.co/ML4TSPBench/AM/resolve/main/tsp50_am.pt?download=true',
+    100: 'https://huggingface.co/ML4TSPBench/AM/resolve/main/tsp100_am.pt?download=true',
 }
 
 
@@ -101,9 +101,9 @@ class TSPAM(REINFORCE):
         if ckpt_path is None:
             if self.num_nodes in [50, 100]:
                 url = tsp_am_path[self.num_nodes]
-                filename=f"ckpts/tsp{self.num_nodes}_am.ckpt"
+                filename=f"ckpts/tsp{self.num_nodes}_am.pt"
                 pygm.utils.download(filename=filename, url=url, to_cache=None)
-                state_dict = torch.load(filename)['state_dict']
+                state_dict = torch.load(filename)
             else:
                 raise ValueError(f"There is currently no pretrained checkpoint with {self.num_nodes} nodes.")
         else:

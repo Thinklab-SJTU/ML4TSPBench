@@ -21,9 +21,9 @@ from models.utils.diffusion import get_schedule_fn, CategoricalDiffusion, Infere
 
 
 tsp_diffusion_path = {
-    50:  'https://huggingface.co/Bench4CO/t2tco/resolve/main/TSP/tsp50_diffusion.ckpt?download=true',
-    100: 'https://huggingface.co/Bench4CO/t2tco/resolve/main/TSP/tsp100_diffusion.ckpt?download=true',
-    500: 'https://huggingface.co/Bench4CO/t2tco/resolve/main/TSP/tsp500_diffusion.ckpt?download=true'
+    50:  'https://huggingface.co/ML4TSPBench/DIFFUSION/resolve/main/tsp50_diffusion.pt?download=true',
+    100: 'https://huggingface.co/ML4TSPBench/DIFFUSION/resolve/main/tsp100_diffusion.pt?download=true',
+    500: 'https://huggingface.co/ML4TSPBench/DIFFUSION/resolve/main/tsp500_diffusion.pt?download=true'
 }
 
 
@@ -525,9 +525,9 @@ class TSPDiffusion(MetaDiffusion):
         if ckpt_path is None:
             if self.num_nodes in [50, 100, 500]:
                 url = tsp_diffusion_path[self.num_nodes]
-                filename=f"ckpts/tsp{self.num_nodes}_diffusion.ckpt"
+                filename=f"ckpts/tsp{self.num_nodes}_diffusion.pt"
                 pygm.utils.download(filename=filename, url=url, to_cache=None)
-                self.load_state_dict(torch.load(filename)['state_dict'])
+                self.load_state_dict(torch.load(filename))
             else:
                 raise ValueError(f"There is currently no pretrained checkpoint with {self.num_nodes} nodes.")
         else:

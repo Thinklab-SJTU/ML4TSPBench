@@ -226,9 +226,9 @@ class TSPGNN4REG(MetaGNN):
         if ckpt_path is None:
             if self.num_nodes in [50, 100]:
                 url = tsp_gnn_path[self.num_nodes]
-                filename=f"ckpts/tsp{self.num_nodes}_gnn4reg.ckpt"
+                filename=f"ckpts/tsp{self.num_nodes}_gnn4reg.pt"
                 pygm.utils.download(filename=filename, url=url, to_cache=None)
-                self.load_state_dict(torch.load(filename)['state_dict'])
+                self.load_state_dict(torch.load(filename))
             else:
                 raise ValueError(f"There is currently no pretrained checkpoint with {self.num_nodes} nodes.")
         else:

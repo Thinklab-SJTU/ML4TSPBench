@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-import time
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.data
@@ -17,16 +16,16 @@ from utils.utils import coords_to_distance
 from search import tsp_greedy, get_decoding_func, get_local_search_func
 from .gnn_base import MetaGNN
 import pygmtools as pygm
+from LinSATNet import linsat_layer, init_constraints
+from sklearn.neighbors import KDTree
 
 
-tsp_gnn_path = {
-    50:  'https://huggingface.co/ML4TSPBench/GNN/resolve/main/tsp50_gnn.pt?download=true',
-    100: 'https://huggingface.co/ML4TSPBench/GNN/resolve/main/tsp100_gnn.pt?download=true',
-    500: 'https://huggingface.co/ML4TSPBench/GNN/resolve/main/tsp500_gnn.pt?download=true',
+tsp_gnn_wise_path = {
+    500: 'https://huggingface.co/ML4TSPBench/GNN/resolve/main/tsp500_gnn_linsat.pt?download=true',
 }
 
 
-class TSPGNN(MetaGNN):
+class TSPGNNWISE(MetaGNN):
     def __init__(
         self,
         num_nodes: int=50,
@@ -46,7 +45,7 @@ class TSPGNN(MetaGNN):
         valid_file: str=None,
         test_file: str=None,
         valid_samples: int=1280,
-        mode: str=None,
+        mode: str="train",
         num_workers: int=0,
         # parallel/active
         parallel_sampling: int=1,
@@ -54,12 +53,14 @@ class TSPGNN(MetaGNN):
         as_steps: int=100,
         as_samples: int=1000,
         inner_lr: float=5e-2,
+        # precision
+        fp16: bool=False,
         # test_step
         decoding_type: str="greedy",
         local_search_type: str=None,
         **kwargs
     ):
-        super(TSPGNN, self).__init__(
+        super(TSPGNNWISE, self).__init__(
             num_nodes=num_nodes,
             network_type=network_type,
             input_dim=input_dim,
@@ -85,12 +86,17 @@ class TSPGNN(MetaGNN):
         self.as_steps = as_steps
         self.as_samples = as_samples
         self.inner_lr = inner_lr
+        self.fp16 = fp16
+        self.wise_epsilon = 1e-6 if self.fp16 else 1e-14
 
-        self.test_decoding_type = decoding_type
+        self.decoding_type = decoding_type
         self.test_decoding_kwargs= kwargs
-        self.test_ls_type = local_search_type
+        self.local_search_type = local_search_type
         self.test_ls_kwargs = kwargs
+        self.num_nodes = num_nodes
 
+        self.linsat_constr_cache = None
+        
     def shared_step(self, batch: Any, batch_idx: int, phase: str):
         edge_index = None
         np_edge_index = None
@@ -107,13 +113,11 @@ class TSPGNN(MetaGNN):
             graph_data = batch[1]
             graph_data: GraphData
             gt_tour = batch[4]
-            gt_tour: torch.Tensor
             route_edge_flags = graph_data.edge_attr
-            route_edge_flags: torch.Tensor
             points = graph_data.x
             edge_index = graph_data.edge_index
             edge_index: torch.Tensor
-            adj_matrix = route_edge_flags.reshape(-1)
+            adj_matrix = route_edge_flags.reshape((1, -1))[0]
             graph = coords_to_distance(points, edge_index)
             if phase != "train":
                 np_points = points.cpu().numpy()
@@ -127,10 +131,113 @@ class TSPGNN(MetaGNN):
         adj_matrix: torch.Tensor
         edge_labels = adj_matrix.cpu().numpy().flatten()
         edge_cw = compute_class_weight("balanced", classes=np.unique(edge_labels), y=edge_labels)
-        edge_cw = torch.Tensor(edge_cw).to(x0_pred.device) 
-        x0 = F.log_softmax(x0_pred, dim=1)
-        loss = nn.NLLLoss(edge_cw)(x0, adj_matrix.long())
+        edge_cw = torch.Tensor(edge_cw).to(x0_pred.device)
 
+        if not self.sparse: 
+            # old node-wise norm (one-way)
+            # x0 = F.softmax(x0_pred, dim=-1)
+            # x0_0 = (x0[:, 0, :, :] * (self.num_nodes - 2)).unsqueeze(dim=1)
+            # x0_1 = (x0[:, 1, :, :] * 2).unsqueeze(dim=1)
+
+            # # linsatnet  (2-way)
+            # # create constraint matrix Ex == f
+            if self.linsat_constr_cache is None:
+                num_nodes = x0_pred.shape[2]
+                assert num_nodes == x0_pred.shape[3]
+                assert 2 == x0_pred.shape[1]
+                # row constr
+                #row_constrA = torch.zeros(num_nodes, 2 * num_nodes * num_nodes, device=x0_pred.device) 2-dim output constraints
+                row_constrA = torch.zeros(num_nodes, num_nodes * num_nodes, device=x0_pred.device)
+                row_constrB = torch.zeros(row_constrA.shape[0], device=x0_pred.device)
+                for j in range(num_nodes):
+                    #offset = num_nodes ** 2 + j * num_nodes
+                    offset = j * num_nodes
+                    row_constrA[j, offset:offset + num_nodes] = 1
+                    row_constrB[j] = 2
+                # col constr
+                #col_constrA = torch.zeros(num_nodes, 2 * num_nodes * num_nodes, device=x0_pred.device)
+                col_constrA = torch.zeros(num_nodes, num_nodes * num_nodes, device=x0_pred.device)
+                col_constrB = torch.zeros(col_constrA.shape[0], device=x0_pred.device)
+                for i in range(num_nodes):
+                    #offset = num_nodes ** 2
+                    offset = 0
+                    col_constrA[i, offset + i::num_nodes] = 1
+                    col_constrB[i] = 2
+
+                self.linsat_constr_cache = init_constraints(
+                    num_nodes**2,
+                    E=torch.cat((row_constrA, col_constrA), dim=0).to_sparse(),
+                    f=torch.cat((row_constrB, col_constrB), dim=0)
+                )
+
+            x0_pred = x0_pred[:, 1, :, :]
+            x0 = linsat_layer(x0_pred.view(x0_pred.shape[0], -1),
+                              constr_dict=self.linsat_constr_cache,
+                              tau=0.1, max_iter=2, dummy_val=0, no_warning=True).reshape(x0_pred.shape)
+
+        else:
+            # old node-wise norm (one-way)
+            # x0_0_reshape = x0_pred[:, 0].reshape(-1, self.sparse_factor)
+            # x0_0_softmax = F.softmax(x0_0_reshape, dim=-1) * (self.sparse_factor - 2)
+            # x0_0 = x0_0_softmax.reshape(-1, 1)
+            # x0_1_reshape = x0_pred[:, 1].reshape(-1, self.sparse_factor)
+            # x0_1_softmax = F.softmax(x0_1_reshape, dim=-1) * 2
+            # x0_1 = x0_1_softmax.reshape(-1, 1)
+
+            # linsatnet  (2-way)
+            # create constraint matrix Ex == f
+            x0_pred = x0_pred[:, 1]
+            if phase != "train": 
+                self.num_nodes = x0_pred.shape[0] // self.sparse_factor
+            num_nodes = self.num_nodes
+            x0_pred = x0_pred.reshape(-1, num_nodes, self.sparse_factor)
+            np_points_rs = points.cpu().numpy().reshape(-1, num_nodes, 2)
+
+            indices_knn = []
+            for i in range(np_points_rs.shape[0]):
+                kdt = KDTree(np_points_rs[i], leaf_size=30, metric='euclidean')
+                dis_knn, idx_knn = kdt.query(np_points_rs[i], k=self.sparse_factor, return_distance=True)
+                indices_knn.append(idx_knn)
+            indices_knn = np.array(indices_knn)
+
+            full_adjacency = torch.zeros(x0_pred.shape[0], num_nodes, num_nodes, dtype=x0_pred.dtype, device=x0_pred.device)
+            batch_indices = torch.arange(np_points_rs.shape[0]).view(-1, 1, 1).expand(-1, num_nodes, self.sparse_factor)
+            row_indices = torch.arange(num_nodes).view(1, -1, 1).expand(np_points_rs.shape[0], -1, self.sparse_factor)
+            full_adjacency[batch_indices, row_indices, indices_knn] = x0_pred
+            if self.linsat_constr_cache is None:
+                # row constr
+                row_constrA = torch.zeros(num_nodes, num_nodes ** 2, device=x0_pred.device)
+                row_constrB = torch.zeros(row_constrA.shape[0], device=x0_pred.device)
+                for j in range(num_nodes):
+                    #offset = num_nodes ** 2 + j * num_nodes
+                    offset = j * num_nodes
+                    row_constrA[j, offset:offset + num_nodes] = 1
+                    row_constrB[j] = 2
+                # col constr
+                col_constrA = torch.zeros(num_nodes, num_nodes ** 2, device=x0_pred.device)
+                col_constrB = torch.zeros(col_constrA.shape[0], device=x0_pred.device)
+                for i in range(num_nodes):
+                    #offset = num_nodes ** 2
+                    offset = 0
+                    col_constrA[i, offset + i::num_nodes] = 1
+                    col_constrB[i] = 2
+
+                self.linsat_constr_cache = init_constraints(
+                    num_nodes**2,
+                    E=torch.cat((row_constrA, col_constrA), dim=0).to_sparse(),
+                    f=torch.cat((row_constrB, col_constrB), dim=0)
+                )
+
+            full_adjacency = linsat_layer(full_adjacency.view(full_adjacency.shape[0], -1),
+                                          constr_dict=self.linsat_constr_cache,
+                                          tau=0.3, max_iter=2, dummy_val=0, no_warning=True).reshape(-1, num_nodes, num_nodes)
+            x0 = full_adjacency[batch_indices, row_indices, indices_knn].reshape(-1)
+
+        # linsatnet  (2-way)
+        h0 = x0
+        heatmap = torch.clamp(h0, self.wise_epsilon, 1.0)
+        loss = nn.BCELoss()(heatmap, adj_matrix.reshape(heatmap.shape).float())
+        
         # return loss if current is a training step
         if phase == "train":
             metrics = {"train/loss": loss}
@@ -139,11 +246,16 @@ class TSPGNN(MetaGNN):
             return loss
         
         # Gain the heatmap
-        heatmap = F.softmax(x0_pred, dim=1)
         if not self.sparse:
-            adj_mat = heatmap[:, 1, :, :]
+            # old node-wise norm (one-way)
+            # adj_mat = heatmap[:, 1, :, :]
+            # linsatnet  (3-way)
+            adj_mat = heatmap
         else:
-            adj_mat = heatmap[:, 1]    
+            # old node-wise norm (one-way)
+            # adj_mat = heatmap[:, 1]  
+            # linsatnet  (3-way)
+            adj_mat = heatmap
 
         # Decoding / solve
         if phase == "val":
@@ -153,7 +265,7 @@ class TSPGNN(MetaGNN):
                 np_points=np_points, 
                 edge_index_np=np_edge_index, 
                 sparse_graph=self.sparse, 
-                device=gt_tour.device,
+                device=gt_tour.device
             )
         else:
             # Active search
@@ -165,8 +277,7 @@ class TSPGNN(MetaGNN):
             adj_mat = adj_mat.cpu().numpy()
             
             # decode
-            begin_time = time.time()
-            decoding_func = get_decoding_func(task="tsp", name=self.test_decoding_type)
+            decoding_func = get_decoding_func(task="tsp", name=self.decoding_type)
             solved_tours = decoding_func(
                 adj_mat=adj_mat, 
                 np_points=np_points, 
@@ -175,10 +286,9 @@ class TSPGNN(MetaGNN):
                 device=gt_tour.device,
                 **self.test_decoding_kwargs
             )
-            self.decoding_time += (time.time() - begin_time)
-            
+
             # local_search
-            local_search_func = get_local_search_func(task="tsp", name=self.test_ls_type)
+            local_search_func = get_local_search_func(task="tsp", name=self.local_search_type)
             if local_search_func is not None:
                 if self.sparse:
                     if self.parallel_sampling == 1:
@@ -200,7 +310,7 @@ class TSPGNN(MetaGNN):
                             )
                             sparse_adj_mat.append(ps_sparse_adj_mat.to_dense().unsqueeze(dim=0).cpu().numpy()[0])
                         adj_mat = np.array(sparse_adj_mat)
-                
+
                 solved_tours = local_search_func(
                     np_points=np_points, 
                     tours=solved_tours, 
@@ -208,7 +318,6 @@ class TSPGNN(MetaGNN):
                     device=gt_tour.device,
                     **self.test_ls_kwargs
                 )
-                
 
         # Check the tours
         for idx in range(len(solved_tours)):
@@ -289,11 +398,23 @@ class TSPGNN(MetaGNN):
                 points = points.to(device=device)
                 graph = coords_to_distance(points, batch_edge_index[idx]).to(device=device)
                 x0_pred = self.forward(points, graph, batch_edge_index[idx])
-                heatmap = F.softmax(x0_pred, dim=1)
+                if not self.sparse: 
+                    x0 = F.softmax(x0_pred, dim=-1)
+                    x0_0 = (x0[:, 0, :, :] * (self.num_nodes - 2)).unsqueeze(dim=1)
+                    x0_1 = (x0[:, 1, :, :] * 2).unsqueeze(dim=1)
+                else:
+                    x0_0_reshape = x0_pred[:, 0].reshape(-1, self.sparse_factor)
+                    x0_0_softmax = F.softmax(x0_0_reshape, dim=-1) * (self.sparse_factor - 2)
+                    x0_0 = x0_0_softmax.reshape(-1, 1)
+                    x0_1_reshape = x0_pred[:, 1].reshape(-1, self.sparse_factor)
+                    x0_1_softmax = F.softmax(x0_1_reshape, dim=-1) * 2
+                    x0_1 = x0_1_softmax.reshape(-1, 1)
+                h0 = torch.cat([x0_0, x0_1], dim=1)
+                heatmap = torch.clamp(h0, self.wise_epsilon, 1)
                 if not self.sparse:
                     heatmap = heatmap[:, 1, :, :]
                 else:
-                    heatmap = heatmap[:, 1].reshape(batch_size, -1)
+                    heatmap = heatmap[:, 1].reshape(batch_size, -1)  
                 heatmap = heatmap.cpu().detach().numpy()
                 batch_heatmap.append(heatmap)
 
@@ -304,20 +425,14 @@ class TSPGNN(MetaGNN):
             heatmap = batch_heatmap.reshape(-1, batch_heatmap.shape[-1])
         return heatmap
 
-    def load_ckpt(self, ckpt_path: str=None):
-        """load state dict from checkpoint"""
+    def load_ckpt(self, ckpt_path:str=None):
         if ckpt_path is None:
-            if self.num_nodes in [50, 100, 500]:
-                url = tsp_gnn_path[self.num_nodes]
-                filename=f"ckpts/tsp{self.num_nodes}_gnn.pt"
+            if self.num_nodes in [500]:
+                url = tsp_gnn_wise_path[self.num_nodes]
+                filename=f"ckpts/tsp{self.num_nodes}_gnn_linsat.pt"
                 pygm.utils.download(filename=filename, url=url, to_cache=None)
                 self.load_state_dict(torch.load(filename))
             else:
                 raise ValueError(f"There is currently no pretrained checkpoint with {self.num_nodes} nodes.")
         else:
-            checkpoint = torch.load(ckpt_path)
-            if ckpt_path.endswith('.ckpt'):
-                state_dict = checkpoint['state_dict']
-            elif ckpt_path.endswith('.pt'):
-                state_dict = checkpoint
-            self.load_state_dict(state_dict)
+            self.load_state_dict(torch.load(ckpt_path)['state_dict'])

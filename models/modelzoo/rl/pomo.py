@@ -9,8 +9,8 @@ import pygmtools as pygm
 
 
 tsp_pomo_path = {
-    50:  'https://huggingface.co/Bench4CO/POMO/resolve/main/TSP/tsp50_pomo.ckpt?download=true',
-    100:  'https://huggingface.co/Bench4CO/POMO/resolve/main/TSP/tsp100_pomo.ckpt?download=true',
+    50:  'https://huggingface.co/ML4TSPBench/POMO/resolve/main/tsp50_pomo.pt?download=true',
+    100:  'https://huggingface.co/ML4TSPBench/POMO/resolve/main/tsp100_pomo.pt?download=true',
 }
 
 
@@ -178,9 +178,9 @@ class TSPPOMO(REINFORCE):
         if ckpt_path is None:
             if self.num_nodes in [50, 100]:
                 url = tsp_pomo_path[self.num_nodes]
-                filename=f"ckpts/tsp{self.num_nodes}_pomo.ckpt"
+                filename=f"ckpts/tsp{self.num_nodes}_pomo.pt"
                 pygm.utils.download(filename=filename, url=url, to_cache=None)
-                state_dict = torch.load(filename)['state_dict']
+                state_dict = torch.load(filename)
             else:
                 raise ValueError(f"There is currently no pretrained checkpoint with {self.num_nodes} nodes.")
         else:

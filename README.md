@@ -10,7 +10,7 @@ Abstract: Despite the rich works on machine learning (ML) for combinatorial opti
 
 This repository integrates existing mainstream machine learning and search algorithms for the TSP problem, implementing a pluggable and unified pipeline. The current code corresponds to the reproducible implementation of results presented in the ICLR paper. At the same time, to simplify ML4CO code development and to facilitate adaptation to other CO problems, we have developed a task-agnostic skeleton and a common toolkit as a python library, [ML4CO-Kit](https://github.com/Thinklab-SJTU/ML4CO-Kit), which provides robust support for the development of learning-based solvers across different tasks. This toolkit incorporates the following components:
 
-![ml4co-kit-logo](docs/figs/ml4co-kit-logo.png)
+<img src="docs/figs/ml4co-kit-logo.png" width="560">
 
 1. A generic skeleton for organizing ML4CO frameworks;
 2. Base classes to streamline method development;
@@ -100,7 +100,7 @@ The full datasets used in this research can be downloaded through [Google Drive]
 python generate.py --type uniform --min_nodes 50 --max_nodes 50 --num_samples 130560 --solver lkh
 ```
 
-The pretrained model checkpoints can be downloaded through [Google Drive](https://drive.google.com/drive/folders/1wVcrL-FAEnwCf95y37ABqDsneD3SPANw?usp=sharing).
+The pretrained model checkpoints of typical model configurations can be downloaded through [Google Drive](https://drive.google.com/drive/folders/1wVcrL-FAEnwCf95y37ABqDsneD3SPANw?usp=sharing).
 
 ### Train and Test
 

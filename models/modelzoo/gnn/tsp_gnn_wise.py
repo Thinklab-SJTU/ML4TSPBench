@@ -19,9 +19,11 @@ import pygmtools as pygm
 
 
 tsp_gnn_wise_path = {
-    50:  'https://huggingface.co/Bench4CO/GNN-WISE/resolve/main/TSP/tsp50_gnn_wise.ckpt?download=true',
-    100: 'https://huggingface.co/Bench4CO/GNN-WISE/resolve/main/TSP/tsp100_gnn_wise.ckpt?download=true',
-    500: 'https://huggingface.co/Bench4CO/GNN-WISE/resolve/main/TSP/tsp500_gnn_wise.ckpt?download=true',
+    50:  'https://huggingface.co/ML4TSPBench/GNN/resolve/main/tsp50_gnn_wise.pt?download=true',
+    100: 'https://huggingface.co/ML4TSPBench/GNN/resolve/main/tsp100_gnn_wise.pt?download=true',
+    500: 'https://huggingface.co/ML4TSPBench/GNN/resolve/main/tsp500_gnn_wise.pt?download=true',
+    1000: 'https://huggingface.co/ML4TSPBench/GNN/resolve/main/tsp1000_gnn_wise.pt?download=true',
+    10000: 'https://huggingface.co/ML4TSPBench/GNN/resolve/main/tsp10000_gnn_wise.pt?download=true'
 }
 
 
@@ -330,11 +332,11 @@ class TSPGNNWISE(MetaGNN):
 
     def load_ckpt(self, ckpt_path:str=None):
         if ckpt_path is None:
-            if self.num_nodes in [50, 100, 500]:
+            if self.num_nodes in [50, 100, 500, 1000, 10000]:
                 url = tsp_gnn_wise_path[self.num_nodes]
-                filename=f"ckpts/tsp{self.num_nodes}_gnn_wise.ckpt"
+                filename=f"ckpts/tsp{self.num_nodes}_gnn_wise.pt"
                 pygm.utils.download(filename=filename, url=url, to_cache=None)
-                self.load_state_dict(torch.load(filename)['state_dict'])
+                self.load_state_dict(torch.load(filename))
             else:
                 raise ValueError(f"There is currently no pretrained checkpoint with {self.num_nodes} nodes.")
         else:
