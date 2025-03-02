@@ -4,13 +4,13 @@ Official implementation of **ICLR 2025** paper: "[ML4TSPBench: Drawing Methodolo
 
 Abstract: Despite the rich works on machine learning (ML) for combinatorial optimization (CO), a unified, principled framework remains lacking. This study utilizes the Travelling Salesman Problem (TSP) as a major case study, with adaptations demonstrated for other CO problems, dissecting established mainstream learning-based solvers to outline a comprehensive design space. It advances a unified modular streamline incorporating existing technologies in both learning and search for transparent ablation, aiming to reassess the role of learning and to discern which parts of existing techniques are genuinely beneficial and which are not. This further leads to the investigation of desirable principles of learning designs and the exploration of concepts guiding method designs. We demonstrate the desirability of principles such as joint probability estimation, symmetry solution representation, and online optimization for learning-based designs. Leveraging the findings, we propose enhancements to existing methods to compensate for their missing attributes, thereby advancing performance and enriching the technique library. From a higher viewpoint, we also uncover a performance advantage in non-autoregressive and supervised paradigms compared to their counterparts. The strategic decoupling and organic recompositions yield a factory of new TSP solvers, where we investigate synergies across various method combinations and pinpoint the optimal design choices to create more powerful ML4TSP solvers, thereby facilitating and offering a reference for future research and engineering endeavors.
 
-![fig1](docs/figs/ml4tspbench-overview.pdf)
+![fig1](docs/figs/ml4tspbench-overview.jpg)
 
 ### Repository Organization
 
 This repository integrates existing mainstream machine learning and search algorithms for the TSP problem, implementing a pluggable and unified pipeline. The current code corresponds to the reproducible implementation of results presented in the ICLR paper. At the same time, to simplify ML4CO code development and to facilitate adaptation to other CO problems, we have developed a task-agnostic skeleton and a common toolkit as a python library, [ML4CO-Kit](https://github.com/Thinklab-SJTU/ML4CO-Kit), which provides robust support for the development of learning-based solvers across different tasks. This toolkit incorporates the following components:
 
-![ml4co-kit-logo](/Users/liyang/Documents/Workspace/ML4TSP/docs/figs/ml4co-kit-logo.png)
+![ml4co-kit-logo](docs/figs/ml4co-kit-logo.png)
 
 1. A generic skeleton for organizing ML4CO frameworks;
 2. Base classes to streamline method development;
