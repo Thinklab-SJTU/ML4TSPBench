@@ -6,6 +6,8 @@ Abstract: Despite the rich works on machine learning (ML) for combinatorial opti
 
 ![fig1](docs/figs/ml4tspbench-overview.jpg)
 
+![iclr25_ml4tsp_results](docs/figs/iclr25_ml4tsp_results.png)
+
 ### Repository Organization
 
 This repository integrates existing mainstream machine learning and search algorithms for the TSP problem, implementing a pluggable and unified pipeline. The current code corresponds to the reproducible implementation of results presented in the ICLR paper. At the same time, to simplify ML4CO code development and to facilitate adaptation to other CO problems, we have developed a task-agnostic skeleton and a common toolkit as a python library, [ML4CO-Kit](https://github.com/Thinklab-SJTU/ML4CO-Kit), which provides robust support for the development of learning-based solvers across different tasks. This toolkit incorporates the following components:
