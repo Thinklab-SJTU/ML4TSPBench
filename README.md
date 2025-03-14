@@ -1,6 +1,6 @@
-# ML4TSPBench
+# ML4TSPBench [ICLR2025]
 
-Official implementation of **ICLR 2025** paper: "[ML4TSPBench: Drawing Methodological Principles for TSP and Beyond from Streamlined Design Space of Learning and Search](https://openreview.net/pdf?id=grU1VKEOLi)".
+Official implementation of **ICLR 2025** paper: "[Unify ML4TSP: Drawing Methodological Principles for TSP and Beyond from Streamlined Design Space of Learning and Search](https://openreview.net/pdf?id=grU1VKEOLi)".
 
 Abstract: Despite the rich works on machine learning (ML) for combinatorial optimization (CO), a unified, principled framework remains lacking. This study utilizes the Travelling Salesman Problem (TSP) as a major case study, with adaptations demonstrated for other CO problems, dissecting established mainstream learning-based solvers to outline a comprehensive design space. It advances a unified modular streamline incorporating existing technologies in both learning and search for transparent ablation, aiming to reassess the role of learning and to discern which parts of existing techniques are genuinely beneficial and which are not. This further leads to the investigation of desirable principles of learning designs and the exploration of concepts guiding method designs. We demonstrate the desirability of principles such as joint probability estimation, symmetry solution representation, and online optimization for learning-based designs. Leveraging the findings, we propose enhancements to existing methods to compensate for their missing attributes, thereby advancing performance and enriching the technique library. From a higher viewpoint, we also uncover a performance advantage in non-autoregressive and supervised paradigms compared to their counterparts. The strategic decoupling and organic recompositions yield a factory of new TSP solvers, where we investigate synergies across various method combinations and pinpoint the optimal design choices to create more powerful ML4TSP solvers, thereby facilitating and offering a reference for future research and engineering endeavors.
 
@@ -210,7 +210,7 @@ If you found this codebase useful, please consider citing the paper:
 
 ```
 @inproceedings{li2025ml4tsp,
-    title={ML4TSPBench: Drawing Methodological Principles for TSP and Beyond from Streamlined Design Space of Learning and Search}, 
+    title={Unify ML4TSP: Drawing Methodological Principles for TSP and Beyond from Streamlined Design Space of Learning and Search}, 
     author={Yang Li and Jiale Ma and Wenzheng Pan and Runzhong Wang and Haoyu Geng and Nianzu Yang and Junchi Yan},
     year={2025},
     booktitle={International Conference on Learning Representations}
